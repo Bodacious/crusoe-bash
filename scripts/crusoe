@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+usage() {
+  cat >&2 <<'USAGE'
+Crusoe usage:
+# Open today's journal entry in editor
+crusoe
+USAGE
+}
+
+
+main() {
+  echo 'Main'
+  local command="${1:-journal}"
+  case "$command" in
+    journal)
+      shift || true
+      crusoe_journal "$@"
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo "Unknown sub-command $1" >&2
+      usage
+      return 2
+      ;;
+  esac
+};
+
+help(){
+  usage
+}
+crusoe_journal(){
+  echo "Crusoe journal"
+
+  local entry_date=""
+
+  while [[  $# -gt 0 ]]; do
+    case "$1" in
+      --today)
+        entry_date=$(date)
+        ;;
+      *)
+        echo "Unrecogised option $1"
+        shift
+        exit 2
+        ;;
+    esac
+  done
+  entry_date="${entry_date:-$(date +%F)}"
+  echo "Writing entry for date $entry_date"
+}
+
+main "$@";
