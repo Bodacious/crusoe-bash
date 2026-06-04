@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
+entries_dir="/Users/gavin/.crusoe/entries"
+
 
 usage() {
   cat >&2 <<'USAGE'
@@ -39,17 +43,40 @@ crusoe_journal(){
   while [[  $# -gt 0 ]]; do
     case "$1" in
       --today)
-        entry_date=$(date)
+        entry_date=$(date +%F)
+        shift
+        ;;
+      --date=*)
+        entry_date="${1#--date=}"
+        entry_date=$(gdate --date "$entry_date" +%F)
+        shift
         ;;
       *)
         echo "Unrecogised option $1"
         shift
-        exit 2
+        return 2
         ;;
     esac
   done
   entry_date="${entry_date:-$(date +%F)}"
   echo "Writing entry for date $entry_date"
+
+  entry_file_path="$(gdate --date "$entry_date" +'%Y/%m')/$entry_date.md"
+  echo "$entry_file_path"
+  entry_file_path="$entries_dir/$entry_file_path"
+  echo "$entry_file_path"
+
+  if [ -f "$entry_file_path" ]; then
+    echo "File exists"
+  else
+    echo "File does not exists"
+    mkdir -p "$(dirname "$entry_file_path")"
+    touch "$entry_file_path"
+    echo "Created file"
+  fi
+  local editor="nano"
+  echo "$editor $entry_file_path"
+  exec "$editor" "$entry_file_path"
 }
 
 main "$@";
