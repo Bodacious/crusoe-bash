@@ -39,7 +39,7 @@ crusoe_journal(){
   echo "Crusoe journal"
 
   local entry_date=""
-
+  local entry_file_path=""
   while [[  $# -gt 0 ]]; do
     case "$1" in
       --today)
@@ -62,6 +62,7 @@ crusoe_journal(){
   echo "Writing entry for date $entry_date"
 
   entry_file_path="$(gdate --date "$entry_date" +'%Y/%m')/$entry_date.md"
+
   echo "$entry_file_path"
   entry_file_path="$entries_dir/$entry_file_path"
   echo "$entry_file_path"
@@ -74,9 +75,12 @@ crusoe_journal(){
     touch "$entry_file_path"
     echo "Created file"
   fi
-  local editor="nano"
-  echo "$editor $entry_file_path"
-  exec "$editor" "$entry_file_path"
+  echo "${EDITOR:-nano}" "$entry_file_path"
+  "$EDITOR" "$entry_file_path"
+  echo "Git dir: $entries_dir"
+  git -C $entries_dir add "$entry_file_path"
+  git -C $entries_dir commit -m "Update journal for $entry_date"
+  git -C $entries_dir push
 }
 
 main "$@";
