@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+DEBUG=false
 entries_dir="/Users/gavin/.crusoe/entries"
 
 
@@ -19,7 +19,7 @@ main() {
   case "$command" in
     journal)
       shift || true
-      crusoe_journal "$@"
+      crusoe::journal "$@"
       ;;
     -h|--help)
       usage
@@ -35,13 +35,17 @@ main() {
 help(){
   usage
 }
-crusoe_journal(){
-  echo "Crusoe journal"
+crusoe::journal(){
+  debug "Crusoe journal"
 
   local entry_date=""
   local entry_file_path=""
   while [[  $# -gt 0 ]]; do
     case "$1" in
+      --debug)
+        DEBUG=true
+        shift
+        ;;
       --today)
         entry_date=$(date +%F)
         shift
@@ -59,28 +63,39 @@ crusoe_journal(){
     esac
   done
   entry_date="${entry_date:-$(date +%F)}"
-  echo "Writing entry for date $entry_date"
+  debug "Writing entry for date $entry_date"
 
   entry_file_path="$(gdate --date "$entry_date" +'%Y/%m')/$entry_date.md"
 
-  echo "$entry_file_path"
+
   entry_file_path="$entries_dir/$entry_file_path"
-  echo "$entry_file_path"
+
 
   if [ -f "$entry_file_path" ]; then
-    echo "File exists"
+    debug "File exists $entry_file_path"
   else
-    echo "File does not exists"
+    debug "File does not exists $entry_file_path"
     mkdir -p "$(dirname "$entry_file_path")"
     touch "$entry_file_path"
-    echo "Created file"
+    debug "Created file $entry_file_path"
   fi
-  echo "${EDITOR:-nano}" "$entry_file_path"
+  debug "${EDITOR:-nano}" "$entry_file_path"
   "$EDITOR" "$entry_file_path"
-  echo "Git dir: $entries_dir"
+  crusoe::git::commit_changes "$entry_file_path", "$entry_date"
+}
+
+crusoe::git::commit_changes() {
+  local entry_file_path=$1
+  local entry_date=$2
+
+  debug "Git dir: $entries_dir"
   git -C $entries_dir add "$entry_file_path"
   git -C $entries_dir commit -m "Update journal for $entry_date"
   git -C $entries_dir push
 }
-
+debug(){
+  if [[ "$DEBUG" == true ]]; then
+    printf '[Crusoe][Debug]: %s\n' "$*" >&2
+  fi
+}
 main "$@";
