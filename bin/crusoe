@@ -6,6 +6,8 @@ entries_dir="/Users/gavin/.crusoe/entries"
 CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly CRUSOE_ROOT
 
+source "$CRUSOE_ROOT/lib/logging.bash"
+
 main() {
   debug 'Main'
   local command="${1:-journal}"
@@ -134,9 +136,5 @@ crusoe::git::commit_changes() {
   git -C $entries_dir commit -m "Update journal for $entry_date"
   git -C $entries_dir push origin main
 }
-debug(){
-  if [[ "$DEBUG" == true ]]; then
-    printf '[Crusoe][Debug]: %s\n' "$*" >&2
-  fi
-}
+
 main "$@";

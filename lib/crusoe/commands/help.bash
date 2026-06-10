@@ -1,5 +1,3 @@
-shellcheck=bash
-
 usage() {
   cat >&2 <<-'USAGE'
     Crusoe usage:
