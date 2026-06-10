@@ -35,6 +35,10 @@ main() {
       shift || true
       crusoe::journal "$@"
       ;;
+    read)
+      shift || true
+      crusoe::read "$@"
+      ;;
     -h|--help)
       usage
       ;;
@@ -49,10 +53,22 @@ main() {
 help(){
   usage
 }
+
+crusoe::_entry_file_path() {
+  local entry_date=""
+  local entry_month=""
+
+  entry_date="$(gdate --date "${1:-today}" +'%F')" || return
+  entry_month="$(gdate --date "$entry_date" +'%Y/%m')" || return
+
+  printf '%s/%s/%s.md' "$entries_dir" "$entry_month" "$entry_date"
+}
+
 crusoe::journal(){
   debug "Crusoe journal"
 
   local entry_date=""
+  entry_date=$(date +%F) # default if not overwritten
   local entry_file_path=""
   while [[  $# -gt 0 ]]; do
     case "$1" in
@@ -76,14 +92,9 @@ crusoe::journal(){
         ;;
     esac
   done
-  entry_date="${entry_date:-$(date +%F)}"
   debug "Writing entry for date $entry_date"
 
-  entry_file_path="$(gdate --date "$entry_date" +'%Y/%m')/$entry_date.md"
-
-
-  entry_file_path="$entries_dir/$entry_file_path"
-
+  entry_file_path=$(crusoe::_entry_file_path "$entry_date")
 
   if [ -f "$entry_file_path" ]; then
     debug "File exists $entry_file_path"
@@ -95,7 +106,46 @@ crusoe::journal(){
   fi
   debug "${EDITOR:-nano}" "$entry_file_path"
   "$EDITOR" "$entry_file_path"
-  crusoe::git::commit_changes "$entry_file_path", "$entry_date"
+  crusoe::git::commit_changes "$entry_file_path" "$entry_date"
+}
+
+crusoe::read() {
+  debug "Crusoe read"
+
+  local entry_date=""
+  entry_date=$(date +%F) # default if not overwritten
+  local entry_file_path=""
+  while [[  $# -gt 0 ]]; do
+    case "$1" in
+      --debug)
+        DEBUG=true
+        shift
+        ;;
+      --today)
+        entry_date=$(date +%F)
+        shift
+        ;;
+      --date=*)
+        entry_date="${1#--date=}"
+        entry_date=$(gdate --date "$entry_date" +%F)
+        shift
+        ;;
+      *)
+        echo "Unrecogised option $1"
+        shift
+        return 2
+        ;;
+    esac
+  done
+  echo "$entry_date"
+
+  entry_file_path=$(crusoe::_entry_file_path "$entry_date")
+  if [[ -f "$entry_file_path" ]];then
+    cat "$entry_file_path"
+  else
+    echo "Crusoe: No entry for $entry_date"
+  fi
+  exit 0
 }
 
 crusoe::git::commit_changes() {
@@ -105,7 +155,7 @@ crusoe::git::commit_changes() {
   debug "Git dir: $entries_dir"
   git -C $entries_dir add "$entry_file_path"
   git -C $entries_dir commit -m "Update journal for $entry_date"
-  git -C $entries_dir push
+  git -C $entries_dir push origin main
 }
 debug(){
   if [[ "$DEBUG" == true ]]; then
