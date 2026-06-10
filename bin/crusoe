@@ -3,32 +3,11 @@ set -euo pipefail
 DEBUG=false
 entries_dir="/Users/gavin/.crusoe/entries"
 
-
-usage() {
-  cat >&2 <<-'USAGE'
-    Crusoe usage:
-    # Open today's journal entry in editor
-    crusoe
-
-    crusoe journal --today
-    crusoe journal --yesterday
-
-    crusoe read
-    crusoe read --today
-    crusoe read --yesterday
-
-    # See the current week Monday-Friday journals
-    crusoe report
-    crusoe report --from=2026/05/01 --to=2026/06/01
-
-    # Set the Git repo for where to save daily entries
-    crusoe config --set repository_url git@github.com/bodacious/crusoe-bash.git
-USAGE
-}
-
+CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+readonly CRUSOE_ROOT
 
 main() {
-  echo 'Main'
+  debug 'Main'
   local command="${1:-journal}"
   case "$command" in
     journal)
@@ -40,6 +19,7 @@ main() {
       crusoe::read "$@"
       ;;
     -h|--help)
+      source "$CRUSOE_ROOT/lib/crusoe/commands/help.bash"
       usage
       ;;
     *)
@@ -50,9 +30,6 @@ main() {
   esac
 };
 
-help(){
-  usage
-}
 
 crusoe::_entry_file_path() {
   local entry_date=""
@@ -137,7 +114,7 @@ crusoe::read() {
         ;;
     esac
   done
-  echo "$entry_date"
+  debug "entry_date: $entry_date"
 
   entry_file_path=$(crusoe::_entry_file_path "$entry_date")
   if [[ -f "$entry_file_path" ]];then
