@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck disable=SC2034
-DEBUG="${CRUSOE_DEBUG:-false}"
-entries_dir="${CRUSOE_ENTRIES_DIR:-/Users/gavin/.crusoe/entries}"
+DEBUG=false
+entries_dir="/Users/gavin/.crusoe/entries"
 
 CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly CRUSOE_ROOT
 
 load-util() {
-  local util_name="${1:?missing util name}"
-  # shellcheck disable=SC1090
+  local util_name="${1}"
   source "$CRUSOE_ROOT/lib/$util_name.bash"
 }
 
 load-command() {
-  local command_name="${1:?missing command name}"
-  # shellcheck disable=SC1090
+  local command_name="${1}"
   source "$CRUSOE_ROOT/lib/crusoe/commands/$command_name.bash"
 }
 
@@ -33,13 +30,16 @@ main() {
       shift || true
       crusoe::read "$@"
       ;;
+    report)
+      shift || true
+      crusoe::report "$@"
+      ;;
     -h|--help)
       load-command "help"
       help
       ;;
     *)
-      echo "Unknown sub-command $command" >&2
-      load-command "help"
+      echo "Unknown sub-command $1" >&2
       usage
       return 2
       ;;
@@ -66,16 +66,11 @@ crusoe::journal(){
   while [[  $# -gt 0 ]]; do
     case "$1" in
       --debug)
-        # shellcheck disable=SC2034
         DEBUG=true
         shift
         ;;
       --today)
         entry_date=$(date +%F)
-        shift
-        ;;
-      --yesterday)
-        entry_date=$(gdate --date "yesterday" +%F)
         shift
         ;;
       --date=*)
@@ -84,7 +79,7 @@ crusoe::journal(){
         shift
         ;;
       *)
-        echo "Unrecognized option $1" >&2
+        echo "Unrecogised option $1"
         shift
         return 2
         ;;
@@ -98,13 +93,12 @@ crusoe::journal(){
     debug "File exists $entry_file_path"
   else
     debug "File does not exists $entry_file_path"
-    mkdir -p -- "$(dirname "$entry_file_path")"
-    touch -- "$entry_file_path"
+    mkdir -p "$(dirname "$entry_file_path")"
+    touch "$entry_file_path"
     debug "Created file $entry_file_path"
   fi
-  local editor="${EDITOR:-nano}"
-  debug "$editor" "$entry_file_path"
-  "$editor" "$entry_file_path"
+  debug "${EDITOR:-nano}" "$entry_file_path"
+  "$EDITOR" "$entry_file_path"
   crusoe::git::commit_changes "$entry_file_path" "$entry_date"
 }
 
@@ -117,16 +111,11 @@ crusoe::read() {
   while [[  $# -gt 0 ]]; do
     case "$1" in
       --debug)
-        # shellcheck disable=SC2034
         DEBUG=true
         shift
         ;;
       --today)
         entry_date=$(date +%F)
-        shift
-        ;;
-      --yesterday)
-        entry_date=$(gdate --date "yesterday" +%F)
         shift
         ;;
       --date=*)
@@ -135,7 +124,7 @@ crusoe::read() {
         shift
         ;;
       *)
-        echo "Unrecognized option $1" >&2
+        echo "Unrecogised option $1"
         shift
         return 2
         ;;
@@ -147,19 +136,54 @@ crusoe::read() {
   if [[ -f "$entry_file_path" ]];then
     cat "$entry_file_path"
   else
-    echo "Crusoe: No entry for $entry_date" >&2
-    return 1
+    echo "Crusoe: No entry for $entry_date"
   fi
+  exit 0
+}
+
+crusoe::report() {
+  local start=""
+  local end=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --from=*)
+        start="${1#--from=}"
+        shift
+      ;;
+      --to=*)
+        end="${2#--to=}"
+        shift
+      ;;
+      *)
+        echo "Unknown option $1"
+        exit 1
+     ;;
+    esac
+  done
+
+  start=${start:-$(date -v-mon +%F)} # Given date or last Monday
+  end=${end:-$(date -v-fri +%F)} # Given date or the Friday after last Monday
+  local matchingEntryDate="" # iterator variable for the loop
+  for file in $entries_dir/**/*.md; do
+    matchingEntryDate=${file##*/}
+    matchingEntryDate=${matchingEntryDate%.md}
+
+    if [[ $matchingEntryDate > "$start" || $matchingEntryDate == "$start" ]] &&
+       [[ $matchingEntryDate < "$end"   || $matchingEntryDate == "$end" ]]; then
+        # TODO: Try to cat all of the files in a single operation (that's cat's job)
+        cat "$file"
+    fi
+  done
 }
 
 crusoe::git::commit_changes() {
-  local entry_file_path="$1"
-  local entry_date="$2"
+  local entry_file_path=$1
+  local entry_date=$2
 
   debug "Git dir: $entries_dir"
-  git -C "$entries_dir" add "$entry_file_path"
-  git -C "$entries_dir" commit -m "Update journal for $entry_date"
-  git -C "$entries_dir" push origin main
+  git -C $entries_dir add "$entry_file_path"
+  git -C $entries_dir commit -m "Update journal for $entry_date"
+  git -C $entries_dir push origin main
 }
 
-main "$@"
+main "$@";
