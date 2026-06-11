@@ -16,7 +16,6 @@ Commands:
   crusoe journal         # This is the default task.
   crusoe read            # Read an entry
   crusoe report          # Generate a report for the last week
-  crusoe toc             # Update the ToC on the README.md
 ```
 
 ## Installation
