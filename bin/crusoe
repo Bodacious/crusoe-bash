@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DEBUG=false
-entries_dir="/Users/gavin/.crusoe/entries"
+entries_dir="${CRUSOE_ENTRIES_DIR:-/Users/gavin/.crusoe/entries}"
 
 CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly CRUSOE_ROOT
@@ -40,6 +40,7 @@ main() {
       ;;
     *)
       echo "Unknown sub-command $1" >&2
+      load-command "help"
       usage
       return 2
       ;;
@@ -71,6 +72,10 @@ crusoe::journal(){
         ;;
       --today)
         entry_date=$(date +%F)
+        shift
+        ;;
+      --yesterday)
+        entry_date=$(gdate --date yesterday +%F)
         shift
         ;;
       --date=*)
@@ -118,6 +123,10 @@ crusoe::read() {
         entry_date=$(date +%F)
         shift
         ;;
+      --yesterday)
+        entry_date=$(gdate --date yesterday +%F)
+        shift
+        ;;
       --date=*)
         entry_date="${1#--date=}"
         entry_date=$(gdate --date "$entry_date" +%F)
@@ -137,8 +146,8 @@ crusoe::read() {
     cat "$entry_file_path"
   else
     echo "Crusoe: No entry for $entry_date"
+    exit 1
   fi
-  exit 0
 }
 
 crusoe::report() {
