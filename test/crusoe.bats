@@ -104,3 +104,48 @@ SCRIPT
   [ "$status" -eq 0 ]
   [ -f "$entries_dir/$expected_month/$expected_date.md" ]
 }
+
+@test "journal --today creates an entry for today" {
+  today="$(gdate --date today +%F)"
+  today_month="$(gdate --date today +%Y/%m)"
+
+  run "$crusoe" journal --today
+
+  [ "$status" -eq 0 ]
+  [ -f "$entries_dir/$today_month/$today.md" ]
+  [ "$(cat "$entries_dir/$today_month/$today.md")" = "edited by test editor" ]
+}
+
+@test "crusoe with no arguments defaults to journal for today" {
+  today="$(gdate --date today +%F)"
+  today_month="$(gdate --date today +%Y/%m)"
+
+  run "$crusoe"
+
+  [ "$status" -eq 0 ]
+  [ -f "$entries_dir/$today_month/$today.md" ]
+}
+
+@test "read --today reads today's entry" {
+  today="$(gdate --date today +%F)"
+  today_month="$(gdate --date today +%Y/%m)"
+  mkdir -p "$entries_dir/$today_month"
+  printf 'Today I reflected.\n' >"$entries_dir/$today_month/$today.md"
+
+  run "$crusoe" read --today
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "Today I reflected." ]
+}
+
+@test "read --yesterday reads yesterday's entry" {
+  yesterday="$(gdate --date yesterday +%F)"
+  yesterday_month="$(gdate --date yesterday +%Y/%m)"
+  mkdir -p "$entries_dir/$yesterday_month"
+  printf 'Yesterday I coded.\n' >"$entries_dir/$yesterday_month/$yesterday.md"
+
+  run "$crusoe" read --yesterday
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "Yesterday I coded." ]
+}
