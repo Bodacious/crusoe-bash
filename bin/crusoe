@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DEBUG=false
-entries_dir="/Users/gavin/.crusoe/entries"
+entries_dir="${HOME}/.crusoe/entries"
 
 CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly CRUSOE_ROOT
