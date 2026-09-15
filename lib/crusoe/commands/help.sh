@@ -8,6 +8,8 @@ usage() {
     crusoe journal --today
     crusoe journal --yesterday
 
+    # New entries are seeded from ~/.crusoe/template.md when that file exists
+
     crusoe read
     crusoe read --today
     crusoe read --yesterday

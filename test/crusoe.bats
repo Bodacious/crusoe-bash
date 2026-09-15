@@ -104,3 +104,38 @@ SCRIPT
   [ "$status" -eq 0 ]
   [ -f "$entries_dir/$expected_month/$expected_date.md" ]
 }
+
+@test "journal seeds a new entry from ~/.crusoe/template.md when the template exists" {
+  printf '# Daily log\n\n## Wins\n' >"$BATS_TEST_TMPDIR/template.md"
+
+  run "$crusoe" journal --date=2026-06-10
+
+  [ "$status" -eq 0 ]
+  [ -f "$entries_dir/2026/06/2026-06-10.md" ]
+  grep -F "# Daily log" "$entries_dir/2026/06/2026-06-10.md" >/dev/null
+  grep -F "## Wins" "$entries_dir/2026/06/2026-06-10.md" >/dev/null
+  grep -F "edited by test editor" "$entries_dir/2026/06/2026-06-10.md" >/dev/null
+}
+
+@test "journal creates an empty entry when the default template is absent" {
+  [ ! -f "$BATS_TEST_TMPDIR/template.md" ]
+
+  run "$crusoe" journal --date=2026-06-11
+
+  [ "$status" -eq 0 ]
+  [ -f "$entries_dir/2026/06/2026-06-11.md" ]
+  [ "$(cat "$entries_dir/2026/06/2026-06-11.md")" = "edited by test editor" ]
+}
+
+@test "journal does not re-seed an existing entry from the template" {
+  mkdir -p "$entries_dir/2026/06"
+  printf 'already written\n' >"$entries_dir/2026/06/2026-06-12.md"
+  printf 'TEMPLATE BODY\n' >"$BATS_TEST_TMPDIR/template.md"
+
+  run "$crusoe" journal --date=2026-06-12
+
+  [ "$status" -eq 0 ]
+  grep -F "already written" "$entries_dir/2026/06/2026-06-12.md" >/dev/null
+  grep -F "edited by test editor" "$entries_dir/2026/06/2026-06-12.md" >/dev/null
+  ! grep -F "TEMPLATE BODY" "$entries_dir/2026/06/2026-06-12.md" >/dev/null
+}
