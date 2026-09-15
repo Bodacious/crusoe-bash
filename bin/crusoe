@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DEBUG=false
-entries_dir="/Users/gavin/.crusoe/entries"
+# Journal data lives under ~/.crusoe by default:
+#   ~/.crusoe/entries/YYYY/MM/YYYY-MM-DD.md
+#   ~/.crusoe/template.md   # optional default template for new entries
+entries_dir="${CRUSOE_ENTRIES_DIR:-${HOME}/.crusoe/entries}"
 
 CRUSOE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly CRUSOE_ROOT
@@ -57,6 +60,28 @@ crusoe::_entry_file_path() {
   printf '%s/%s/%s.md' "$entries_dir" "$entry_month" "$entry_date"
 }
 
+# Default template sits beside the entries directory (not inside it, so it is
+# not committed with journal files). Later named templates can live under
+# ~/.crusoe/templates/ without colliding with this single default path.
+crusoe::_default_template_path() {
+  printf '%s/template.md' "$(dirname -- "$entries_dir")"
+}
+
+crusoe::_create_entry_file() {
+  local entry_file_path="${1:?}"
+  local template_file_path=""
+
+  mkdir -p "$(dirname -- "$entry_file_path")"
+  template_file_path="$(crusoe::_default_template_path)"
+  if [[ -f "$template_file_path" ]]; then
+    debug "Seeding new entry from template $template_file_path"
+    cp -- "$template_file_path" "$entry_file_path"
+  else
+    debug "No template at $template_file_path; creating empty entry"
+    touch "$entry_file_path"
+  fi
+}
+
 crusoe::journal(){
   debug "Crusoe journal"
 
@@ -93,8 +118,7 @@ crusoe::journal(){
     debug "File exists $entry_file_path"
   else
     debug "File does not exists $entry_file_path"
-    mkdir -p "$(dirname "$entry_file_path")"
-    touch "$entry_file_path"
+    crusoe::_create_entry_file "$entry_file_path"
     debug "Created file $entry_file_path"
   fi
   debug "${EDITOR:-nano}" "$entry_file_path"

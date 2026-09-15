@@ -34,6 +34,19 @@ TODO
 - Automatically saves to git repo configured by you
 - Default command for `crusoe`
 - Can provide an optional `--date` value (e.g. one of `"today"`, `"yesterday"`, `"2023-12-25"`)
+- Optional default template: if `~/.crusoe/template.md` exists, new entries are seeded from it
+
+#### Default entry template
+
+New journal files start empty unless you add a default template next to the entries directory:
+
+```
+~/.crusoe/template.md
+```
+
+That path is a sibling of `~/.crusoe/entries/` (not inside it), so the template is not committed with daily notes. When the file exists, `crusoe` / `crusoe journal` copies it into a **new** day's entry before opening the editor. Existing entries are left unchanged. If the file is missing, behaviour is unchanged.
+
+Named or multiple templates are not supported yet.
 
 #### `crusoe read ✅`
 
